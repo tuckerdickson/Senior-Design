@@ -18,10 +18,15 @@ uint8_t lcd_d7 = 13;
 int temperature_pin = 7;
 
 // push button pin
-int pushbutton_pin = 2;
+int pushbutton_pin2 = 2;
+int pushbutton_pin3 = 3;
+
+// data line for the switch
+int switch_pin = 4;
+int value = 0;
 
 // whether temp should be displayed in C or F
-char units = 'C';
+char units = 'F';
 
 //  temperature variable
 float temp;
@@ -36,20 +41,25 @@ OneWire data_line(temperature_pin);
 DallasTemperature temp_sensor(&data_line);
 
 // object for the push button
-Pushbutton pushbutton(pushbutton_pin);
+Pushbutton pushbutton2(pushbutton_pin2);
+Pushbutton pushbutton3(pushbutton_pin3);
 
 void setup() {
-  attachInterrupt(digitalPinToInterrupt(pushbutton_pin), buttonPressInterrupt, RISING);
-  attachInterrupt(digitalPinToInterrupt(pushbutton_pin), buttonReleaseInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(pushbutton_pin2), buttonPressInterrupt, RISING);
+  attachInterrupt(digitalPinToInterrupt(pushbutton_pin3), buttonReleaseInterrupt, FALLING);
   
   // configure the baud rate of the serial moniter (debugging)
   Serial.begin(9600);
   
   // set up the lcd interface, passing in the dimensions
   lcd.begin(16, 2);
+
+  lcd.noDisplay();
   
   // set up the temperature sensor interface
   temp_sensor.begin();
+
+  pinMode(switch_pin, INPUT);
 
 }
 
@@ -60,22 +70,41 @@ void readTemp() {
   if (units == 'F') {
     temp = (temp * 1.8) + 32;
   }
+  
 }
 
 void printTemp() {
   lcd.clear();
-  String str = "Temp= " + String(temp) + " " + (char)223 + units;
-  lcd.print(str);  
+
+  if (value != 1) {
+    lcd.print("ERROR: data");  
+    lcd.setCursor(0,1);
+    lcd.print("unavailable");
+  }
+  
+  else if (temp < -120) {
+    lcd.print("ERROR: unplugged");  
+    lcd.setCursor(0,1);
+    lcd.print("sensor");  
+  }
+
+  else {
+    String str = "Temp= " + String(temp) + " " + (char)223 + units;
+    lcd.print(str);  
+  }
+  
 }
 
 void loop() {
-  readTemp();
+  value = digitalRead(switch_pin);
+  readTemp();  
   printTemp();
+  delay(1000);
 }
 
 void buttonPressInterrupt() {
   Serial.println("push button pressed");
-  lcd.display();
+  lcd.display();  
 }
 
 void buttonReleaseInterrupt() {
