@@ -22,10 +22,6 @@ int temperature_pin = 7;
 int pushbutton_pin2 = 2;
 int pushbutton_pin3 = 3;
 
-// data line for the switch
-int switch_pin = 4;
-int value = 0;
-
 // determines whether the temperature should be displayed in degrees C or F
 char units = 'F';
 
@@ -61,9 +57,6 @@ void setup() {
   
   // set up the temperature sensor interface
   temp_sensor.begin();
-
-  // set the switch pin as an input to the controller
-  pinMode(switch_pin, INPUT);
 }
 
 void readTemp() {
@@ -82,18 +75,8 @@ void printTemp() {
   // clear any previous writing on the lcd
   lcd.clear();
 
-  // read the value on the switch input pin
-  value = digitalRead(switch_pin);
-
-  // if the switch is set to "o", notify that the sensor is off
-  if (value != 1) {
-    lcd.print("ERROR: data");  
-    lcd.setCursor(0,1);
-    lcd.print("unavailable");
-  }
-
   // otherwise, if the temperature read is less than -120, notify that the sensor is unplugged
-  else if (temp < -120) {
+  if (temp < -120) {
     lcd.print("ERROR: unplugged");  
     lcd.setCursor(0,1);
     lcd.print("sensor");  
@@ -112,6 +95,8 @@ void loop() {
 
   // print the appropriate message
   printTemp();
+
+  delay(1000);
 }
 
 void buttonPressInterrupt() {
