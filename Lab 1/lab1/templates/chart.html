@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html  lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>lab 1</title>
+
+    <!-- Bootstraps Java Scipts Links -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+    <!-- JQuery links  -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <!--High CHART LIVE  -->
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+</head>
+<body>
+    <!-- div for the digital temperature readout -->
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-5 jumbotron p-2 mx-1">
+                <h1 class="sensor1"> Sensor : </h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- centers the digital temperature reading -->
+    <style>
+        .row{
+            justify-content: center;
+        }
+    </style>
+
+    <!-- div for the dynamic graph -->
+    <div class="container-fluid">
+        <div class="row">
+            <div class="container-fluid" id="data-temperature">
+            </div>
+        </div>
+    </div>
+    <button id="unitButton">Change Units</button>
+    <script>
+        var chartTemperatue;
+        var degF = true;
+        var label;
+        var yMax;
+        var yMin;
+        var xMin;
+        var xMax;
+        var tempsF = [];
+        var tempsC = [];
+        var tempsCurr;
+
+        // Get a reference to the button
+        let unitButton = document.getElementById("unitButton");
+
+        // Add an event handler for the click event
+        unitButton.addEventListener("click", function() {
+            degF = !degF;
+        });
+
+        function requestData()
+        {
+            // Ajax call to get the Data from Flask
+            var requests = $.get('/data');
+
+            var tm = requests.done(function (result)
+            {
+                // add the point (time, temp)
+                var data1 = [];
+                data1.push(result[0]);
+                data1.push(result[1]);
+
+                tempsF.push([result[0], result[1]]);
+                tempsC.push([result[0], (result[1] - 32) * 5/9])
+
+                // we assume that the temp is received in degrees F, so make the conversion if necessary
+                if (!degF) {
+                    data1[1] = (data1[1] - 32) * 5/9;
+                    label = "Temperature (C)";
+                    yMin = 10;
+                    yMax = 50;
+                    tempsCurr = tempsC;
+                } else {
+                    label = "Temperature (F)";
+                    yMin = 50;
+                    yMax = 122;
+                    tempsCurr = tempsF;
+                }
+
+                if (data1[0] > 300) {
+                    xMax = data1[0];
+                    xMin = data1[0] - 300;
+                } else {
+                    xMax = 300;
+                    xMin = 0;
+                }
+
+                chartTemperatue.update({
+                    yAxis: {
+                        title: {
+                            text: label
+                        },
+                        min: yMin,
+                        max: yMax
+                    },
+                    xAxis: {
+                        min: xMin,
+                        max: xMax
+                    },
+                    series: [{
+                        data: tempsCurr
+                    }]
+                });
+
+                chartTemperatue.series[0].addPoint(data1, true, false);
+                $(".sensor1").text("");
+                $(".sensor1").text(label + ": " + Math.round(data1[1]) );
+
+                // call it again after one second
+                setTimeout(requestData, 1000);
+
+            });
+        }
+
+        $(document).ready(function()
+        {
+            chartTemperatue = new Highcharts.Chart({
+                chart: {
+                    renderTo: 'data-temperature',
+                    defaultSeriesType: 'spline',
+                    events: {
+                        load: requestData
+                    }
+                },
+                title: {
+                    text: ''
+                },
+                xAxis: {
+                    title: {
+                        text: 'Seconds ago from the current time'
+                    },
+                    type: 'linear',
+                    min: 0,
+                    max: 300,
+                    reversed: true
+                },
+                yAxis: {
+                    title: {
+                        text: 'Temperature (F)'
+                    },
+                    min: 50,
+                    max: 122,
+                    tickInterval: 5,
+                    startOnTick: true,
+                    endOnTick: true
+                },
+                series: [{
+                    showInLegend: false,
+                    color : '#c23d23',
+                    lineColor: '#303030',
+                    data: []
+                }]
+            });
+        });
+    </script>
+</body>
+</html>
