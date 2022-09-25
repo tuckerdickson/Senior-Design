@@ -18,7 +18,7 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-5 jumbotron p-2 mx-1">
-                <h1 class="sensor1"> Sensor : </h1>
+                <h1 id="sensor1"> Sensor : </h1>
             </div>
         </div>
     </div>
@@ -37,25 +37,136 @@
             </div>
         </div>
     </div>
-    <button id="unitButton">Change Units</button>
+
+    <div align="center">
+        <button id="unitButton">Change Units</button><br><br>
+    </div>
+
+    <div id="low" align="center">
+        <label for="lowMessage">Low Message:</label><br>
+        <input type="text" id="lowMessage" name="lowMessage"><br><br>
+
+        <label for="lowTemp" id="lowTempLabel">Lower bound (between 50 and 122):</label><br>
+        <input type="number" id="lowTemp" name="lowTemp" min="50" max="122"><br><br>
+
+    </div>
+
+    <div id="high" align="center">
+        <label for="highMessage">High Message:</label><br>
+        <input type="text" id="highMessage" name="highMessage"><br><br>
+
+        <label for="highTemp" id="highTempLabel">Upper bound (between 50 and 122):</label><br>
+        <input type="number" id="highTemp" name="highTemp" min="50" max="122"><br><br>
+    </div>
+
+    <div id="phoneDiv" align="center">
+        <label for="phone">Phone number (+1xxxxxxxxxx):</label><br>
+        <input type="text" id="phone" name="phone"><br><br>
+    </div>
+
+    <div align="center">
+        <button id="saveButton">Save</button><br><br>
+    </div>
+
     <script>
         var chartTemperatue;
+
         var degF = true;
-        var label;
+
+        var label = "Temperature (F)";
         var yMax;
         var yMin;
         var xMin;
         var xMax;
+
         var tempsF = [];
         var tempsC = [];
         var tempsCurr;
 
-        // Get a reference to the button
+        var lowTemp = -999;
+        var highTemp = 999;
+        var lowMessage = '';
+        var highMessage = '';
+        var phone = '';
+
+        // reference to the 'Temperature:' header
+        let sensor = document.getElementById('sensor1');
+
+        // reference to the button that changes units
         let unitButton = document.getElementById("unitButton");
 
-        // Add an event handler for the click event
+        // reference to the button that saves info from the input fields
+        let saveButton = document.getElementById("saveButton");
+
+        // event handler for the units button
         unitButton.addEventListener("click", function() {
+            // flip degF (degF == true indicates degrees fahrenheit)
             degF = !degF;
+
+            // if we are switching from fahrenheit to celsius...
+            if (!degF) {
+                // update the y-axis label, minimum y-value, and maximum y-value
+                label = "Temperature (C)";
+                yMin = 10;
+                yMax = 50;
+
+                // set the data to be displayed to the celsius dataset
+                tempsCurr = tempsC;
+
+                // update the upper and lower texting bounds
+                lowTemp = (lowTemp - 32) * 5/9;
+                highTemp = (highTemp - 32) * 5/9;
+
+            }
+            // if we are switching from celsius to fahrenheit...
+            else {
+                // update the y-axis label, minimum y-value, and maximum y-value
+                label = "Temperature (F)";
+                yMin = 50;
+                yMax = 122;
+
+                // set the data to be displayed to the fahrenheit dataset
+                tempsCurr = tempsF;
+
+                // update the upper and lower texting bounds
+                lowTemp = (lowTemp * 9/5) + 32;
+                highTemp = (highTemp * 9/5) + 32;
+            }
+
+            // update the chart on the webpage, using the variables initialized in the conditional above
+            chartTemperatue.update({
+                yAxis: {
+                    title: {
+                        text: label
+                    },
+                    min: yMin,
+                    max: yMax
+                },
+                series: [{
+                    data: tempsCurr
+                }]
+            });
+
+            // update the labels for the lower bound input elements to reflect the new y-axis bounds
+            document.getElementById('lowTempLabel').innerText = 'Lower bound (between ' + yMin + ' and ' + yMax + ': ';
+            document.getElementById('highTempLabel').innerText = 'Upper bound (between ' + yMin + ' and ' + yMax + ': ';
+        });
+
+        // event handler for the save button
+        saveButton.addEventListener("click", function() {
+            // get the values from the input fields on the webpage
+            var lowTempInput = document.getElementById('lowTemp').value;
+            var highTempInput = document.getElementById('highTemp').value;
+            var lowMessageInput = document.getElementById('lowMessage').value;
+            var highMessageInput = document.getElementById('highTemp').value;
+            var phoneInput = document.getElementById('phone').value;
+
+            // use the values obtained above to initialize the corresponding variables (if the fields aren't empty)
+            if (lowTempInput.length !== 0) { lowTemp = lowTempInput; }
+            if (highTempInput.length !== 0) { highTemp = highTempInput; }
+            if (lowMessageInput.length !== 0) { lowMessage = lowMessageInput; }
+            if (highMessageInput.length !== 0) {highMessage = highMessageInput; }
+            if (phoneInput.length !== 0) {phone = phoneInput; }
         });
 
         function requestData()
@@ -65,56 +176,59 @@
 
             var tm = requests.done(function (result)
             {
-                // add the point (time, temp)
-                var data1 = [];
-                data1.push(result[0]);
-                data1.push(result[1]);
+                // temperature will always be received in fahrenheit, so convert reading to celsius (may be needed later)
+                var celsiusReading = (result[1] - 32) * 5/9;
+                var celsiusLowerBound = (lowTemp - 32) * 5/9;
+                var celsiusUpperBound = (highTemp - 32) * 5/9;
 
+                // push the tuple [time, temp] onto each dataset
                 tempsF.push([result[0], result[1]]);
-                tempsC.push([result[0], (result[1] - 32) * 5/9])
+                tempsC.push([result[0], celsiusReading]);
 
-                // we assume that the temp is received in degrees F, so make the conversion if necessary
+                // if the website is in celsius currently, change the reading to celsius
                 if (!degF) {
-                    data1[1] = (data1[1] - 32) * 5/9;
-                    label = "Temperature (C)";
-                    yMin = 10;
-                    yMax = 50;
-                    tempsCurr = tempsC;
-                } else {
-                    label = "Temperature (F)";
-                    yMin = 50;
-                    yMax = 122;
-                    tempsCurr = tempsF;
+                    result[1] = celsiusReading;
                 }
 
-                if (data1[0] > 300) {
-                    xMax = data1[0];
-                    xMin = data1[0] - 300;
+                // if the time is greater than 300, update minimum and maximum x-axis values to "scroll" the chart
+                if (result[0] > 300) {
+                    xMax = result[0];
+                    xMin = result[0] - 300;
                 } else {
                     xMax = 300;
                     xMin = 0;
                 }
 
+                // update the chart to reflect the new minimum and maximum x-axis values
                 chartTemperatue.update({
-                    yAxis: {
-                        title: {
-                            text: label
-                        },
-                        min: yMin,
-                        max: yMax
-                    },
                     xAxis: {
                         min: xMin,
                         max: xMax
                     },
-                    series: [{
-                        data: tempsCurr
-                    }]
                 });
 
-                chartTemperatue.series[0].addPoint(data1, true, false);
-                $(".sensor1").text("");
-                $(".sensor1").text(label + ": " + Math.round(data1[1]) );
+                // add the new point to the data series
+                chartTemperatue.series[0].addPoint([result[0], result[1]], true, false);
+
+                // update the text on the "Temperature:" heading
+                sensor.textContent = label + ": " + Math.round(result[1]);
+
+                // if the temperature reading is outside of the bounds, send a post to flaskSite.py
+                // this will set in motion the chain of events that triggers a text message to be sent
+                if (result[1] < lowTemp || result[1] > highTemp) {
+                    $.ajax({
+                        url: '/',
+                        type: 'POST',
+                        data : {
+                            lowTemp : lowTemp,
+                            highTemp : highTemp,
+                            lowMessage : lowMessage,
+                            highMessage: highMessage,
+                            phone: phone,
+                            temperature: result[1]
+                        }
+                    });
+                }
 
                 // call it again after one second
                 setTimeout(requestData, 1000);
@@ -128,6 +242,7 @@
                 chart: {
                     renderTo: 'data-temperature',
                     defaultSeriesType: 'spline',
+                    zoomType: 'xy',
                     events: {
                         load: requestData
                     }
