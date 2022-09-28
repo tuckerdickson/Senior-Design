@@ -1,4 +1,7 @@
 import random
+import serial
+import time
+import schedule
 import json
 from time import time
 import random
@@ -28,6 +31,16 @@ def sendText(lowtemp, hightemp, lowmessage, highmessage, phonenum, temperature):
             from_='+19704505421',
             to=phonenum)
 
+def test():
+    serialObject = serial.Serial('com4', 9600)
+    start = time()
+
+    while (True):
+        if serialObject.inWaiting() > 0:
+            data = serialObject.readline()
+            stop = time()
+            print('time =', stop - start, '\tdata =', data)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -53,16 +66,16 @@ def home():
 
 @app.route('/data', methods=['GET', 'POST'])
 def data():
-    stop = time()
     t = stop - start
     temp = random.randint(70, 80)
-    data = [t, temp]
+    datapoint = [t, temp]
 
-    response = make_response(json.dumps(data))
+    response = make_response(json.dumps(datapoint))
     response.content_type = 'application/json'
 
     return response
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    test()
+    #app.run(debug=True)
