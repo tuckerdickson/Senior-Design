@@ -38,19 +38,21 @@
         </div>
     </div>
 
+    <!-- button that changes the units on the chart -->
     <div align="center">
         <button id="unitButton">Change Units</button><br><br>
     </div>
 
+    <!-- text field which corresponds to the text message sent when the lower temperature bound has been reached -->
     <div id="low" align="center">
         <label for="lowMessage">Low Message:</label><br>
         <input type="text" id="lowMessage" name="lowMessage"><br><br>
 
         <label for="lowTemp" id="lowTempLabel">Lower bound (between 50 and 122):</label><br>
         <input type="number" id="lowTemp" name="lowTemp" min="50" max="122"><br><br>
-
     </div>
 
+    <!-- text field which corresponds to the text message sent when the upper temperature bound has been reached -->
     <div id="high" align="center">
         <label for="highMessage">High Message:</label><br>
         <input type="text" id="highMessage" name="highMessage"><br><br>
@@ -59,19 +61,23 @@
         <input type="number" id="highTemp" name="highTemp" min="50" max="122"><br><br>
     </div>
 
+    <!-- text field in which the user enters their phone number -->
     <div id="phoneDiv" align="center">
         <label for="phone">Phone number (+1xxxxxxxxxx):</label><br>
         <input type="text" id="phone" name="phone"><br><br>
     </div>
 
+    <!-- button which, when clicked, saves the low/high messages, low/high temperatures, and phone number -->
     <div align="center">
         <button id="saveButton">Save</button><br><br>
     </div>
 
+    <!-- button which, when clicked, attempts to turn on the LCD -->
     <div align="center">
         <button id="virtualButton">Virtual Button</button><br><br>
     </div>
 
+    <!-- begin javascript code -->
     <script>
         var chartTemperatue;                // the main chart on the webpage (highcharts object)
         var label = "Temperature (F)";      // chartTemperature field which is used to label the y-axis
@@ -84,15 +90,15 @@
 
         var tempsF = [];                    // array which stores temperature readings in fahrenheit
         var tempsC = [];                    // array which stores temperature readings in celsius
-        var tempsCurr;
+        var tempsCurr;                      // array which references one of the two above arrays, depending on the desired units
 
-        var lowTemp = -999;
-        var highTemp = 999;
-        var lowMessage = '';
-        var highMessage = '';
-        var phone = '';
+        var lowTemp = -999;                 // lower temperature bound for the texting functionality
+        var highTemp = 999;                 // upper temperature bound for the texting functionality
+        var lowMessage = '';                // message to be texted when the lower bound is subceeded
+        var highMessage = '';               // message to be texted when the upper bound is exceeded
+        var phone = '';                     // phone number by which to send texts
 
-        let virtualButtonPressed = "false";
+        let virtualButtonPressed = "false";     // a value of "true" should enable the LCD backlight
 
         // reference to the 'Temperature:' header
         let sensor = document.getElementById('sensor1');
@@ -106,7 +112,13 @@
         // reference to the button that virtually controls the LCD
         let virtualButton = document.getElementById("virtualButton");
 
-        // event handler for the units button
+        /*
+        * Description: This is the event handler function for the units button. In a nutshell, it
+        *               converts all temperature readings on the page and updates the chart to 
+        *               reflect the desired units.
+        * Inputs: None (triggered by a mouse click over the units button)
+        * Outputs: None
+        */
         unitButton.addEventListener("click", function() {
             // flip degF (degF == true indicates degrees fahrenheit)
             degF = !degF;
@@ -160,7 +172,13 @@
             document.getElementById('highTempLabel').innerText = 'Upper bound (between ' + yMin + ' and ' + yMax + ': ';
         });
 
-        // event handler for the save button
+        /*
+        * Description: This is the event handler function for the save button. It reads in text from the text 
+        *               fields on the webpage and, if they aren't empty, uses the strings to reinitialize the 
+        *               corresponding variables.
+        * Inputs: None (triggered by a mouse click over the save button)
+        * Outputs: None
+        */
         saveButton.addEventListener("click", function() {
             // get the values from the input fields on the webpage
             let lowTempInput = document.getElementById('lowTemp').value;
@@ -177,14 +195,21 @@
             if (phoneInput.length !== 0) {phone = phoneInput; }
         });
 
-        // event handler for the virtual button
+        /*
+        * Description: This is the event handler function for the units button. It simply inverts the value 
+        *               of virtualButtonPressed, and then passes the string in a POST to the \data page.
+        * Inputs: None (triggered by a mouse click over the units button)
+        * Outputs: None
+        */
         virtualButton.addEventListener("click", function() {
+            // invert virtualButtonPressed
             if (virtualButtonPressed === "false") {
                 virtualButtonPressed = "true";
             } else {
                 virtualButtonPressed = "false";
             }
 
+            // send a POST to the /data page, including virtualButtonPressed
             $.ajax({
                 url: '/data',
                 type: 'POST',
@@ -194,6 +219,11 @@
             });
         });
 
+        /*
+        * Description: This function requests temperature readings from the /data page.
+        * Inputs: None 
+        * Outputs: None
+        */
         function requestData()
         {
             // call the /data page to get temperature data
@@ -202,20 +232,29 @@
             // enter this function once the data is received
             let tm = requests.done(function (result)
             {
+                // extract the temperature reading (in fahrenheit) from the response message
                 let fahrenheit = result[1];
+                
+                // convert the temperature reading to celsius for later use
                 let celsius =  (result[1] - 32) * 5 / 9;
                 celsius = Math.round(celsius * 100) / 100;
 
+                // extract the time reading from the response messge
                 let time = result[0];
 
+                // update the x-axis values for both temperature datasets (this effectively "scrolls" the graph r->l)
                 for (let i = 0; i < tempsF.length; i++) {
                     tempsF[i][0] = tempsF[i][0] + 1;
                     tempsC[i][0] = tempsC[i][0] + 1;
                 }
 
+                // this is the temperature which will eventually be added to the chart
                 var useThisTemp;
+                
+                // if we received a valid temperature reading (sensor not unplugged & switch not off) proceed...
                 if (fahrenheit < 150 && fahrenheit > -150) {
 
+                    // assign useThisTemp based on the desired units
                     if (degF) { useThisTemp = fahrenheit; }
                     else { useThisTemp = celsius; }
 
@@ -238,15 +277,23 @@
                             }
                         });
                     }
+                
+                // otherwise, if the temperature reading is greater than 150, the switch on the third box has been turned off
                 } else if (fahrenheit > 150) {
                     // update the text on the "Temperature:" heading
                     sensor.textContent = "No data available";
+                    
+                    // set all temps to null (this will cause no point to be plotted on the chart for this moment)
                     useThisTemp = null;
                     fahrenheit = null;
                     celsius = null;
+                    
+                // otherwise (temperature < -150), the temperature sensor has been unplugged
                 } else {
                     // update the text on the "Temperature:" heading
                     sensor.textContent = "Unplugged sensor";
+                    
+                    // set all temps to null (this will cause no point to be plotted on the chart for this moment)
                     useThisTemp = null;
                     fahrenheit = null;
                     celsius = null;
@@ -259,25 +306,12 @@
                 // add the new point to the data series
                 chartTemperatue.series[0].addPoint([time, useThisTemp], true, false);
 
-                // if the time is greater than 300, update minimum and maximum x-axis values to "scroll" the chart
-{#                if (time > 300) {
-                    xMax = time;
-                    xMin = time - 300;
-                } else {
-                    xMax = 300;
-                    xMin = 0;
-                }#}
-
                 var useThisData;
                 if(degF) { useThisData = tempsF; }
                 else { useThisData = tempsC; }
 
                 // update the chart to reflect the new minimum and maximum x-axis values
                 chartTemperatue.update({
-{#                    xAxis: {
-                        min: xMin,
-                        max: xMax
-                    },#}
                     series: [{
                         data: useThisData
                     }]
@@ -288,7 +322,11 @@
             });
         }
 
-        // handles the creation of the chart on the webpage
+        /*
+        * Description: This function handles the creation of the chart on the webpage, utilizing the highcharts api.
+        * Inputs: None 
+        * Outputs: None
+        */
         $(document).ready(function()
         {
             chartTemperatue = new Highcharts.Chart({
