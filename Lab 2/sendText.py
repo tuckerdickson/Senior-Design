@@ -1,9 +1,8 @@
+import serial
 from twilio.rest import Client
 from datetime import datetime
 
-# “Critical Safety Event at HH:MM XX
-# on Month/Day/2022”, where HH is in the range 00 to 12, MM in the range 00 to 59, XX is AM
-# or PM, Month in the range 01-12 and Day in the range 01-31.
+
 # ----------------------------------------------------------------------------------------------------------------------
 # Description:
 # Inputs:
@@ -16,13 +15,13 @@ def sendText():
     client = Client(account_sid, auth_token)
 
     # hard-coded sending and receiving phone number
-    toNum = '+18479177782'
+    toNum = '+13196401169'  # '+18479177782'
     fromNum = '+19704505421'
 
     # get the current local date and time
     now = datetime.now()
 
-    #format time as HH:MM XX and date as Month/Day/2022
+    # format time as HH:MM XX and date as Month/Day/2022
     currTime = now.strftime('%I:%M %p')
     currDate = now.strftime('%m/%d/%Y')
 
@@ -31,9 +30,25 @@ def sendText():
 
     # send the message
     message = client.messages.create(
-        body = textStr,
-        from_= fromNum,
-        to= toNum)
+        body=textStr,
+        from_=fromNum,
+        to=toNum)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Description:
+# Inputs:
+# Output:
+# ----------------------------------------------------------------------------------------------------------------------
+def waitForIndication():
+    while True:
+        if serialObject.inWaiting() != 0:
+            value = serialObject.readline()
+            print(value)
+            #sendText()
+
 
 if __name__ == "__main__":
-    sendText()
+    serialObject = serial.Serial('com4', 115200)
+    waitForIndication()
+    serialObject.close()
