@@ -1,36 +1,32 @@
 int outputPin = 8;
-int analogPin = A5;
+int analogPin = A3;
 int reading = 0;
 int count;
+int numSamples = 300;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(outputPin, INPUT);           // set pin to input
+  pinMode(outputPin, OUTPUT);           // set pin to input
   digitalWrite(outputPin, LOW);       // turn on pullup resistors
 }
 
 void loop() {
   count = 0;
   
-  for(int i = 0; i < 100; i++){
+  for(int i = 0; i < numSamples; i++){
     reading = analogRead(analogPin);  // read the input pin
-    Serial.println(reading);          // debug value
 
-    if(reading < 10) {
+    if(reading == 0) {
       count++;  
     }
   }
 
-  if(count > 90) {
+  if(count >= .98 * numSamples) {
     digitalWrite(outputPin, HIGH);
+    Serial.println("Send Text");
   }
   else {
     digitalWrite(outputPin, LOW);
+    Serial.println("Clear");
   }
-//  int count = 0;
-//  for (int i = 0; i < 10; i++) {
-//    delay(1000);
-//  }
-//  Serial.print(count);
-//  count++;
 }

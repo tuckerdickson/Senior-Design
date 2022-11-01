@@ -43,6 +43,8 @@ def sendText():
 # Output: None
 # ----------------------------------------------------------------------------------------------------------------------
 def waitForIndication():
+    clearFlag = 1
+
     timeBetweenTexts = 30
     start = time.time() - timeBetweenTexts
 
@@ -54,18 +56,30 @@ def waitForIndication():
 
         # evaluates to true if there is data that needs to be read in
         if serialObject.inWaiting() != 0:
-
             # read in the message
             value = serialObject.readline()
+            message = ''.join(e for e in value if e.isalnum())
 
-            # calculate the time that has elapsed since the last text was sent
-            elapsedTime = time.time() - start
-
-            # don't spam the user
-            if elapsedTime >= timeBetweenTexts:
+            if message == "SendText" and clearFlag == 1:
                 start = time.time()
-                print(value)
+                print("sending text after clear")
                 sendText()
+
+            elif message == "SendText" and clearFlag == 0:
+                # calculate the time that has elapsed since the last text was sent
+                elapsedTime = time.time() - start
+
+                # don't spam the user
+                if elapsedTime >= timeBetweenTexts:
+                    start = time.time()
+                    print("text sent after elapsed time")
+                    sendText()
+
+            if message == "Clear":
+                clearFlag = 1
+            else:
+                clearFlag = 0
+
 
     #serialObject.close()
 
