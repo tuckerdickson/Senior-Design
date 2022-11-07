@@ -49,7 +49,7 @@ def waitForIndication():
     start = time.time() - timeBetweenTexts
 
     # open serial communication with arduino
-    serialObject = serial.Serial('com4', 115200)
+    serialObject = serial.Serial('com6', 115200)
 
     # loop indefinitely
     while True:
